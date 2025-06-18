@@ -1,5 +1,4 @@
-
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import CertificationCard from '@/components/CertificationCard';
 import CertificationPreview from '@/components/CertificationPreview';
@@ -19,6 +18,28 @@ interface Certification {
   preview?: string;
 }
 
+// Helper function to convert File to base64 for storage
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = error => reject(error);
+  });
+};
+
+// Helper function to convert base64 back to File
+const base64ToFile = (base64: string, filename: string, mimeType: string): File => {
+  const arr = base64.split(',');
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new File([u8arr], filename, { type: mimeType });
+};
+
 const Index = () => {
   const [certifications, setCertifications] = useState<Certification[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -29,6 +50,71 @@ const Index = () => {
   const [filterType, setFilterType] = useState<'all' | 'image' | 'pdf'>('all');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Load certifications from localStorage on component mount
+  useEffect(() => {
+    const loadCertifications = async () => {
+      try {
+        const savedCerts = localStorage.getItem('certifications');
+        if (savedCerts) {
+          const parsedCerts = JSON.parse(savedCerts);
+          const restoredCerts = await Promise.all(
+            parsedCerts.map(async (cert: any) => {
+              const file = base64ToFile(cert.fileData, cert.fileName, cert.fileMimeType);
+              return {
+                id: cert.id,
+                name: cert.name,
+                file: file,
+                type: cert.type,
+                uploadDate: cert.uploadDate,
+                size: cert.size,
+                preview: cert.preview
+              };
+            })
+          );
+          setCertifications(restoredCerts);
+        }
+      } catch (error) {
+        console.error('Error loading certifications from localStorage:', error);
+      }
+    };
+
+    loadCertifications();
+  }, []);
+
+  // Save certifications to localStorage whenever certifications change
+  useEffect(() => {
+    const saveCertifications = async () => {
+      try {
+        const certsToSave = await Promise.all(
+          certifications.map(async (cert) => {
+            const fileData = await fileToBase64(cert.file);
+            return {
+              id: cert.id,
+              name: cert.name,
+              fileName: cert.file.name,
+              fileMimeType: cert.file.type,
+              fileData: fileData,
+              type: cert.type,
+              uploadDate: cert.uploadDate,
+              size: cert.size,
+              preview: cert.preview
+            };
+          })
+        );
+        localStorage.setItem('certifications', JSON.stringify(certsToSave));
+      } catch (error) {
+        console.error('Error saving certifications to localStorage:', error);
+      }
+    };
+
+    if (certifications.length > 0) {
+      saveCertifications();
+    } else {
+      // Clear localStorage if no certifications
+      localStorage.removeItem('certifications');
+    }
+  }, [certifications]);
 
   const handleFileUpload = (files: FileList) => {
     Array.from(files).forEach((file) => {
