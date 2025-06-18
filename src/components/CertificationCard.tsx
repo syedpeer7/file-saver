@@ -1,8 +1,10 @@
 
+import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Download, Eye, FileText, Image, Trash2, Calendar, HardDrive } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Download, Eye, FileText, Image, Trash2, Calendar, HardDrive, Edit, Check, X } from 'lucide-react';
 
 interface Certification {
   id: string;
@@ -19,6 +21,7 @@ interface CertificationCardProps {
   onDownload: () => void;
   onPreview: () => void;
   onDelete: () => void;
+  onNameUpdate: (id: string, newName: string) => void;
   viewMode?: 'grid' | 'list';
 }
 
@@ -27,8 +30,32 @@ const CertificationCard = ({
   onDownload, 
   onPreview, 
   onDelete, 
+  onNameUpdate,
   viewMode = 'grid' 
 }: CertificationCardProps) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(certification.name);
+
+  const handleSaveName = () => {
+    if (editName.trim() && editName !== certification.name) {
+      onNameUpdate(certification.id, editName.trim());
+    }
+    setIsEditing(false);
+  };
+
+  const handleCancelEdit = () => {
+    setEditName(certification.name);
+    setIsEditing(false);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSaveName();
+    } else if (e.key === 'Escape') {
+      handleCancelEdit();
+    }
+  };
+
   if (viewMode === 'list') {
     return (
       <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:scale-[1.02] group">
@@ -55,9 +82,30 @@ const CertificationCard = ({
           {/* Content */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center space-x-2 mb-1">
-              <h3 className="font-semibold text-gray-900 truncate" title={certification.name}>
-                {certification.name}
-              </h3>
+              {isEditing ? (
+                <div className="flex items-center space-x-2 flex-1">
+                  <Input
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    onKeyDown={handleKeyPress}
+                    className="text-sm font-semibold"
+                    autoFocus
+                  />
+                  <Button size="sm" variant="ghost" onClick={handleSaveName} className="p-1 h-6 w-6">
+                    <Check className="h-3 w-3 text-green-600" />
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={handleCancelEdit} className="p-1 h-6 w-6">
+                    <X className="h-3 w-3 text-red-600" />
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <h3 className="font-semibold text-gray-900 truncate cursor-pointer group/title" title={certification.name} onClick={() => setIsEditing(true)}>
+                    {certification.name}
+                    <Edit className="h-3 w-3 ml-1 inline opacity-0 group-hover/title:opacity-100 transition-opacity" />
+                  </h3>
+                </>
+              )}
               <Badge 
                 variant={certification.type === 'image' ? 'default' : 'secondary'} 
                 className={`text-xs ${
@@ -166,10 +214,34 @@ const CertificationCard = ({
 
       {/* Enhanced Content */}
       <div className="p-5">
+        {/* Editable Title */}
         <div className="flex items-start justify-between mb-3">
-          <h3 className="font-semibold text-gray-900 truncate pr-2 text-lg group-hover:text-blue-600 transition-colors duration-300" title={certification.name}>
-            {certification.name}
-          </h3>
+          {isEditing ? (
+            <div className="flex items-center space-x-2 flex-1">
+              <Input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                onKeyDown={handleKeyPress}
+                className="text-lg font-semibold"
+                autoFocus
+              />
+              <Button size="sm" variant="ghost" onClick={handleSaveName} className="p-1 h-8 w-8">
+                <Check className="h-4 w-4 text-green-600" />
+              </Button>
+              <Button size="sm" variant="ghost" onClick={handleCancelEdit} className="p-1 h-8 w-8">
+                <X className="h-4 w-4 text-red-600" />
+              </Button>
+            </div>
+          ) : (
+            <h3 
+              className="font-semibold text-gray-900 truncate pr-2 text-lg group-hover:text-blue-600 transition-colors duration-300 cursor-pointer group/title flex items-center" 
+              title={certification.name}
+              onClick={() => setIsEditing(true)}
+            >
+              {certification.name}
+              <Edit className="h-4 w-4 ml-2 opacity-0 group-hover/title:opacity-100 transition-opacity" />
+            </h3>
+          )}
         </div>
         
         <div className="space-y-2 mb-4">

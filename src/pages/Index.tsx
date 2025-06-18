@@ -1,4 +1,3 @@
-
 import { useState, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -119,6 +118,18 @@ const Index = () => {
     });
   };
 
+  const handleNameUpdate = (certId: string, newName: string) => {
+    setCertifications(prev => 
+      prev.map(cert => 
+        cert.id === certId ? { ...cert, name: newName } : cert
+      )
+    );
+    toast({
+      title: "✏️ Name Updated",
+      description: "Certification name updated successfully.",
+    });
+  };
+
   const filteredCertifications = certifications.filter(cert => {
     const matchesSearch = cert.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterType === 'all' || cert.type === filterType;
@@ -225,7 +236,7 @@ const Index = () => {
                 <div className="relative flex-1 max-w-md">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <Input
-                    placeholder="🔍 Search certifications..."
+                    placeholder="🔍 Search certifications by name..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-blue-400 transition-all duration-300"
@@ -302,6 +313,7 @@ const Index = () => {
                   onDownload={() => handleDownload(cert)}
                   onPreview={() => handlePreview(cert)}
                   onDelete={() => handleDelete(cert.id)}
+                  onNameUpdate={handleNameUpdate}
                   viewMode={viewMode}
                 />
               </div>
